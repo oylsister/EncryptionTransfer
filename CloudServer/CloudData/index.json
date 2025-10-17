@@ -1,0 +1,23 @@
+{
+  "next_id": 4,
+  "files": {
+    "1": {
+      "filename": "M4nlJJ4SyqsjhvvRoEuX9WqJnHp7zC5vftFjmM2HsIY",
+      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\M4nlJJ4SyqsjhvvRoEuX9WqJnHp7zC5vftFjmM2HsIY",
+      "size": 79,
+      "uploaded_at": 1760721292
+    },
+    "2": {
+      "filename": "jQuRigxR2YjuAkgv4sTikbf41IHpvx35HanxwcLGTN8",
+      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\jQuRigxR2YjuAkgv4sTikbf41IHpvx35HanxwcLGTN8",
+      "size": 79,
+      "uploaded_at": 1760721916
+    },
+    "3": {
+      "filename": "x_mRGRikyLascq_isz9Huc45WqfU-WC-mB56n3WXBdQ",
+      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\x_mRGRikyLascq_isz9Huc45WqfU-WC-mB56n3WXBdQ",
+      "size": 79,
+      "uploaded_at": 1760721949
+    }
+  }
+}
