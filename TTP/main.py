@@ -1,47 +1,109 @@
-"""TTP service: provide AES-256 key generation and filename tokenization.
+"""TTP service: single POST endpoint to generate AES-256 key and filename token.
 
 Endpoints:
-  POST /generate-key -> { key: <base64> }
-  POST /token -> { token: <string> }
+  POST /generate?filename=<name>
+    - Generates a 256-bit AES key, computes a deterministic token for the provided
+      filename (HMAC-SHA256 using the generated key), stores the mapping in
+      `TTP/keys.json`, and returns JSON { token, key } where key is base64.
 
-Note: This is a simple local TTP for development. In production you'd protect
-the endpoints, use authenticated channels, and store keys securely.
+  GET /search?filename=<name>
+    - Lookup stored entries by original filename and return matching records.
 
-Requires: pip install flask cryptography
+Security note: This is a development TTP only. Do NOT use in production without
+authentication, secure storage, and transport protection.
 """
+
 import os
+import time
+import json
 import base64
 import hmac
 import hashlib
 from flask import Flask, request, jsonify
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except Exception:
+    AESGCM = None
+
+APP_DIR = os.path.dirname(__file__)
+KEYS_PATH = os.path.join(APP_DIR, 'keys.json')
 
 app = Flask(__name__)
 
 
-def generate_key_bytes() -> bytes:
+def _load_store():
+    if not os.path.exists(KEYS_PATH):
+        return {}
+    try:
+        with open(KEYS_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_store(store: dict):
+    tmp = KEYS_PATH + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(store, f, indent=2)
+    os.replace(tmp, KEYS_PATH)
+
+
+def _generate_key_bytes() -> bytes:
+    if AESGCM is None:
+        raise RuntimeError('cryptography package required')
     return AESGCM.generate_key(bit_length=256)
 
 
-@app.route('/generate-key', methods=['POST'])
-def generate_key():
-    key = generate_key_bytes()
-    return jsonify({'key': base64.urlsafe_b64encode(key).decode('ascii')})
-
-
-@app.route('/token', methods=['POST'])
-def token():
-    data = request.get_json(force=True)
-    if not data or 'key' not in data or 'filename' not in data:
-        return jsonify({'error': 'key and filename required (key base64)'}), 400
-    try:
-        key = base64.urlsafe_b64decode(data['key'].encode('ascii'))
-    except Exception:
-        return jsonify({'error': 'invalid key encoding'}), 400
-    filename = data['filename']
+def _compute_token(key: bytes, filename: str) -> str:
     mac = hmac.new(key, filename.encode('utf-8'), hashlib.sha256).digest()
-    token = base64.urlsafe_b64encode(mac).decode('ascii').rstrip('=')
-    return jsonify({'token': token})
+    return base64.urlsafe_b64encode(mac).decode('ascii').rstrip('=')
+
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    # filename must be provided in query string as requested
+    filename = request.args.get('filename')
+    if not filename:
+        return jsonify({'error': 'filename query parameter is required'}), 400
+
+    try:
+        key = _generate_key_bytes()
+    except Exception as e:
+        return jsonify({'error': 'server cannot generate key', 'detail': str(e)}), 500
+
+    key_b64 = base64.urlsafe_b64encode(key).decode('ascii')
+    token = _compute_token(key, filename)
+
+    # persist mapping: store tokens as keys (allows multiple tokens for different filenames)
+    store = _load_store()
+    # Use token as map key to avoid filename collisions; save original filename too
+    entry = {
+        'filename': filename,
+        'key': key_b64,
+        'created_at': int(time.time())
+    }
+    store[token] = entry
+    try:
+        _save_store(store)
+    except Exception as e:
+        return jsonify({'error': 'failed to persist key', 'detail': str(e)}), 500
+
+    return jsonify({'token': token, 'key': key_b64})
+
+
+@app.route('/search', methods=['GET'])
+def search():
+    filename = request.args.get('filename')
+    if not filename:
+        return jsonify({'error': 'filename query parameter is required'}), 400
+    store = _load_store()
+    matches = []
+    for token, ent in store.items():
+        if ent.get('filename') == filename:
+            matches.append({'token': token, 'key': ent.get('key'), 'created_at': ent.get('created_at')})
+    if not matches:
+        return jsonify({'matches': []}), 200
+    return jsonify({'matches': matches})
 
 
 if __name__ == '__main__':

@@ -1,23 +1,17 @@
 {
-  "next_id": 4,
+  "next_id": 3,
   "files": {
     "1": {
-      "filename": "M4nlJJ4SyqsjhvvRoEuX9WqJnHp7zC5vftFjmM2HsIY",
-      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\M4nlJJ4SyqsjhvvRoEuX9WqJnHp7zC5vftFjmM2HsIY",
-      "size": 79,
-      "uploaded_at": 1760721292
+      "filename": "test_file.txt",
+      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\test_file.txt",
+      "size": 51,
+      "uploaded_at": 1760747509
     },
     "2": {
-      "filename": "jQuRigxR2YjuAkgv4sTikbf41IHpvx35HanxwcLGTN8",
-      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\jQuRigxR2YjuAkgv4sTikbf41IHpvx35HanxwcLGTN8",
+      "filename": "QrtGUfvb7WB22TxDO40n0nCmGFHOsf4jdsvIVGlwpI0",
+      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\QrtGUfvb7WB22TxDO40n0nCmGFHOsf4jdsvIVGlwpI0",
       "size": 79,
-      "uploaded_at": 1760721916
-    },
-    "3": {
-      "filename": "x_mRGRikyLascq_isz9Huc45WqfU-WC-mB56n3WXBdQ",
-      "path": "D:\\Github\\EncryptionTransfer\\CloudServer\\CloudData\\x_mRGRikyLascq_isz9Huc45WqfU-WC-mB56n3WXBdQ",
-      "size": 79,
-      "uploaded_at": 1760721949
+      "uploaded_at": 1760747562
     }
   }
 }

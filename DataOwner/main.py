@@ -6,6 +6,7 @@ import base64
 import json
 import hmac
 import hashlib
+import time
 try:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 except Exception:
@@ -25,12 +26,14 @@ def cmd_upload(server: str, src_path: str):
     os.makedirs(enc_dir, exist_ok=True)
 
     if ttp_url:
-        # Ask TTP for a key and token, encrypt locally, and upload encrypted file named by token
+        # Call new TTP single-endpoint to generate key+token: POST /generate?filename=...
         try:
-            # generate key
-            rkey = requests.post(ttp_url.rstrip('/') + '/generate-key')
-            rkey.raise_for_status()
-            key_b64 = rkey.json().get('key')
+            params = {'filename': os.path.basename(src_path)}
+            rgen = requests.post(ttp_url.rstrip('/') + '/generate', params=params)
+            rgen.raise_for_status()
+            resp = rgen.json()
+            token = resp.get('token')
+            key_b64 = resp.get('key')
             # persist last key for this DataOwner in Encryption folder
             try:
                 with open(os.path.join(enc_dir, 'last_key.b64'), 'w', encoding='utf-8') as kf:
@@ -38,11 +41,6 @@ def cmd_upload(server: str, src_path: str):
             except Exception:
                 pass
             key_bytes = base64.urlsafe_b64decode(key_b64.encode('ascii'))
-            # request token for filename
-            payload = {'key': key_b64, 'filename': os.path.basename(src_path)}
-            rtoken = requests.post(ttp_url.rstrip('/') + '/token', json=payload)
-            rtoken.raise_for_status()
-            token = rtoken.json().get('token')
         except Exception as e:
             print('TTP request failed:', e)
             return 2
@@ -65,6 +63,18 @@ def cmd_upload(server: str, src_path: str):
         except Exception as e:
             print('Failed to write encrypted file:', e)
             return 2
+
+        # Save per-token key and metadata for future download/deletes
+        try:
+            key_file = os.path.join(enc_dir, f"{token}.key.b64")
+            meta_file = os.path.join(enc_dir, f"{token}.meta.json")
+            with open(key_file, 'w', encoding='utf-8') as kf:
+                kf.write(key_b64)
+            with open(meta_file, 'w', encoding='utf-8') as mf:
+                json.dump({'filename': os.path.basename(src_path), 'key': key_b64, 'created_at': int(time.time())}, mf)
+        except Exception:
+            # non-fatal
+            pass
 
         # upload encrypted file using token as filename
         url = server.rstrip('/') + '/upload'
